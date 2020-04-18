@@ -39,7 +39,7 @@ class ProbDist:
 			#for i, j, k in 3D array, compute the concentration due to that leak
 		for n in length(self.LeakPoints):
 			LP = self.LeakPoints(n);
-			H = LP[2]/2; #set the height of the point source leak to be half the height of the equipment
+			H = LP[2]; #this should be at half the height of the equipment
 			Stat = self.PointStats(n);
 			
 			for i in grid_size[0]:
