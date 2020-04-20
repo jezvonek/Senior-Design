@@ -24,18 +24,24 @@ class FlightData:
             component = placemark_to_component(placemark)
             self.wellpad_components = np.append(self.wellpad_components, component)
 
+    def test_func(self):
+        print('hello')
+
     # imports flight run data
     def import_inflight_measurements(self, filename):
+        print('running')
         csv = pd.read_csv(filename)
-        self.times = csv['GPS_Time(s)'].to_numpy()
-        self.windspeeds = csv['Wind_Velocity(m/s)'].to_numpy()
-        self.winddirections = csv['Wind_Direction(deg)'].to_numpy()
-        self.methane_concentrations = csv['CH4(vmr)'].to_numpy()
-
-        x = csv['Latitude(DD)'].to_numpy()
-        y = csv['Longitude(DD)'].to_numpy()
-        z = csv['LiDAR_Alt(m)'].to_numpy()
-        self.coordinates = np.transpose(np.vstack((x,y,z)))
+        col_renames = {
+            'GPS_Time(s)' : 'time',
+            'Wind_Velocity(m/s)' : 'wind_speeds',
+            'Wind_Direction(deg)' : 'wind_directions',
+            'CH4(vmr)' : 'ch4_conc',
+            'Latitude(DD)' : 'x',
+            'Longitude(DD)' : 'y',
+            'LiDAR_Alt(m)' : 'z'
+        }
+        csv = csv.rename(columns=col_renames)
+        self.inflight_data = csv
 
 
 class WellpadComponent:
