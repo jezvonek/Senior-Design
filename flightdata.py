@@ -6,7 +6,7 @@ import pymap3d as pm
 class FlightData:
 
     def __init__(self):
-        pass
+        self.origin = None
 
     # imports wellpad data from .kml file
     def import_wellpad_components(self, filename):
@@ -22,7 +22,7 @@ class FlightData:
         f3 = list(f2[0].features())
 
         for placemark in f3:
-            component = placemark_to_component(placemark)
+            component, self.origin = placemark_to_component(placemark, self.origin)
             self.wellpad_components = np.append(self.wellpad_components, component)
 
     def test_func(self):
@@ -43,15 +43,17 @@ class FlightData:
         }
         
         csv = csv.rename(columns=col_renames)
-        csv['x'], csv['y'], csv['z'] = pm.geodetic2ecef(csv['lat'],csv['lon'],csv['alt'])
+        ecef_x, ecef_y, ecef_z = pm.geodetic2ecef(csv['lat'],csv['lon'],csv['alt'])
+        if self.origin is None:
+            self.origin = np.array([csv['lat'][0], csv['lon'][0], csv['alt'][0]])
+        csv['x'], csv['y'], csv['z'] = pm.ecef2enu(ecef_x, ecef_y, ecef_z, self.origin[0], self.origin[1], self.origin[2])
         self.inflight_data = csv
 
 
 class WellpadComponent:
 
     def __init__(self, pos, name):
-        x,y,z = pm.geodetic2ecef(pos[0], pos[1], pos[2])
-        self.pos = np.array([x,y,z])
+        self.pos = pos
         self.name = name
         self.get_type()
         self.assign_leak_likelihood()
@@ -73,11 +75,13 @@ class WellpadComponent:
             self.p_arr = np.vstack((self.p_arr, p))
 
 
-def placemark_to_component(placemark):
+def placemark_to_component(placemark, origin):
     point = placemark.geometry
-    # switch bc kml file reverses latitude and longitude
-    # should fix later because this is highly bug prone
-    pos = np.array([point.y, point.x, point.z])
+    if origin is None:
+        origin = np.array([point.y, point.x, point.z])
+    ecef_x, ecef_y, ecef_z = pm.geodetic2ecef(point.y,point.x,point.z)
+    x,y,z = pm.ecef2enu(ecef_x, ecef_y, ecef_z, origin[0], origin[1], origin[2])
+    pos = np.array([x,y,z])
     name = placemark.description
     
-    return WellpadComponent(pos, name)
+    return WellpadComponent(pos, name), origin
