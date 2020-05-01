@@ -1,6 +1,7 @@
 import numpy as np 
 import pandas as pd
 from fastkml import kml
+import pymap3d as pm
 
 class FlightData:
 
@@ -36,21 +37,25 @@ class FlightData:
             'Wind_Velocity(m/s)' : 'wind_speeds',
             'Wind_Direction(deg)' : 'wind_directions',
             'CH4(vmr)' : 'ch4_conc',
-            'Latitude(DD)' : 'x',
-            'Longitude(DD)' : 'y',
-            'LiDAR_Alt(m)' : 'z'
+            'Latitude(DD)' : 'lat',
+            'Longitude(DD)' : 'lon',
+            'LiDAR_Alt(m)' : 'alt'
         }
+        
         csv = csv.rename(columns=col_renames)
+        csv['x'], csv['y'], csv['z'] = pm.geodetic2ecef(csv['lat'],csv['lon'],csv['alt'])
         self.inflight_data = csv
 
 
 class WellpadComponent:
 
     def __init__(self, pos, name):
-        self.pos = pos
+        x,y,z = pm.geodetic2ecef(pos[0], pos[1], pos[2])
+        self.pos = np.array([x,y,z])
         self.name = name
         self.get_type()
         self.assign_leak_likelihood()
+        self.p_arr = None
 
     # calculate wellpad component type from description
     def get_type(self):
@@ -61,10 +66,18 @@ class WellpadComponent:
     def assign_leak_likelihood(self):
         return 1.0
 
+    def update_p_arr(self, p):
+        if self.p_arr is None:
+            self.p_arr = p
+        else:
+            self.p_arr = np.vstack((self.p_arr, p))
+
 
 def placemark_to_component(placemark):
     point = placemark.geometry
-    pos = np.array([point.x, point.y, point.z])
+    # switch bc kml file reverses latitude and longitude
+    # should fix later because this is highly bug prone
+    pos = np.array([point.y, point.x, point.z])
     name = placemark.description
     
     return WellpadComponent(pos, name)

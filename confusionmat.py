@@ -1,6 +1,6 @@
 import numpy as np 
-from concentrationmodel import LeakPresent
-import scipy
+from .concentrationmodel import LeakPresent
+from scipy.optimize import minimize_scalar
 import math
 
 class ConfusionMatrix:
@@ -8,7 +8,7 @@ class ConfusionMatrix:
     def __init__(self):
         pass
 
-    def set_baseline_model_parameters(self, mu, sigma, Q_min):
+    def set_baseline_model_parameters(self, mu, sigma, Q_min, sigmay=0.5, sigmaz=0.5):
         """Establishes model parametes
 
         Parameters
@@ -19,12 +19,18 @@ class ConfusionMatrix:
             Baseline methane concentration reading standard deviation
         Q_min : float
             Minimum methane concentration to test for
+        sigmay : float, optional
+            Standard deviation of plume in y direction
+        sigmaz : float
+            Standard deviation of plume in z direction
 
         """
 
         self.mu = mu
         self.sigma = sigma
         self.Q_min = Q_min
+        self.sigmay = sigmay
+        self.sigmaz = sigmaz
 
     def test_measurements(self, measurements, emission_source):
         """Creates a confusion matrix comparing a set of measurements to an
@@ -59,9 +65,9 @@ class ConfusionMatrix:
         # a leak is present. If so, we can compare data points against model with optimized
         # Q value. If not, we compare data points to model with minimized Q value
         if Q_optim > self.Q_min:
-                Q_to_use = Q_optim
+            Q_to_use = Q_optim
         else:
-                Q_to_use = self.Q_min
+            Q_to_use = self.Q_min
 
         # compares data to leak and baseline models to obtain probabilities for each
         p_leak = self.compare_to_leak(Q_to_use, measurements, emission_source)
@@ -95,11 +101,9 @@ class ConfusionMatrix:
         """
 
         def f(Q):
-            p, _ = self.compare_to_leak(Q, measurements, source)
-            return -p
+            return -self.compare_to_leak(Q, measurements, source)
 
-        #Q = self.Q_min
-        res = scipy.optimize.minimize_scalar(f)
+        res = minimize_scalar(f)
 
         if res.success:
             return res.x
