@@ -57,7 +57,9 @@ class WellpadComponent:
         self.name = name
         self.get_type()
         self.assign_leak_likelihood()
+        self.leak_detected = False
         self.p_arr = None
+        self.final_p_arr = None
 
     # calculate wellpad component type from description
     def get_type(self):
@@ -68,9 +70,11 @@ class WellpadComponent:
     def assign_leak_likelihood(self):
         return 1.0
 
-    def update_p_arr(self, p):
+    def update_p_arr(self, p=None):
+        if p is None:
+            p = self.p_arr[-1,:]
         if self.p_arr is None:
-            self.p_arr = p
+            self.p_arr = np.array([p])
         else:
             self.p_arr = np.vstack((self.p_arr, p))
 

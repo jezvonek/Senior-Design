@@ -4,12 +4,13 @@ from .confusionmat import ConfusionMatrix
 
 class InFlight:
 
-    def __init__(self, wellpad_components, Q_min=3, window_size=10):
+    def __init__(self, wellpad_components, Q_min=3, window_size=10, leak_prob=0.2):
         self.wellpad_components = wellpad_components
         self.baseline = None
         self.measurements = None
         self.Q_min = Q_min
         self.window_size = window_size
+        self.leak_prob = leak_prob
 
 
     # load measurements to the baseline measurement category
@@ -35,8 +36,9 @@ class InFlight:
 
         self.update_confusion_mat()
 
-    def trigger_flux_plane(self):
-        pass
+    def trigger_flux_plane(self,component):
+        print('Flux plane!')
+        print(component.name)
 
     # creates confusion matrices
     def create_confusion_mat(self):
@@ -51,9 +53,14 @@ class InFlight:
         measurements = self.measurements.iloc[indices]
         for component in self.wellpad_components:
             p_arr = self.confusion_mat.test_measurements(measurements, component.pos)
-            component.update_p_arr(p_arr)
+            component.update_p_arr(p=p_arr)
+            if p_arr[1] <= self.leak_prob and not component.leak_detected:
+                component.leak_detected = True
+                self.trigger_flux_plane(component)
 
     # to be called once flight has completed or to evaluate whether
     # to finish the flight. This can be used to determine
     def finish_flight(self):
-        pass
+        for component in self.wellpad_components:
+            p_arr = self.confusion_mat.test_measurements(self.measurements, component.pos)
+            component.final_p_arr = p_arr
