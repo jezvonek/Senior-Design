@@ -3,26 +3,23 @@ import math
 
 class LeakPresent:
 
-    def __init__(self, Q, sigmay, sigmaz, H):
+    def __init__(self, Q, H, atmosphere='normal'):
         """Initializes concentration model object
 
         Parameters
         ----------
         Q : float
             Flow rate
-        sigmay : float
-            Standard deviation along y-axis
-        sigmaz : float
-            Standard deviation along z-axis
         H : float
             Height of point source
+        atmosphere : string, optional
+            State of the atmosphere. Either 'unstable', 'neutral', or 'stable'
 
         """
 
         self.Q = Q 
-        self.sigmay = sigmay
-        self.sigmaz = sigmaz
         self.H = H
+        self.atmosphere = atmosphere
 
     def predict_local_coors(self, point, source, wind_speed, wind_direction):
         """Using a point in global coordinates, transforms the point into local
@@ -78,11 +75,30 @@ class LeakPresent:
         """
 
         x = point[0]
-        y = point[1]
-        z = point[2]
-        frac = self.Q / (2 * math.pi * self.sigmay * self.sigmaz * u)
-        first = math.exp(-((y/self.sigmay)**2)/2)
-        second = math.exp(-(((z-self.H)/self.sigmay)**2)/2)
-        third = math.exp(-(((z+self.H)/self.sigmay)**2)/2)
+        if x > 0:
+            y = point[1]
+            z = point[2]
 
-        return frac * first * (second + third)
+            sigmay, sigmaz = self.get_sigma_values(x)
+
+            frac = self.Q / (2 * math.pi * sigmay * sigmaz * u)
+            first = math.exp(-((y/sigmay)**2)/2)
+            second = math.exp(-(((z-self.H)/sigmay)**2)/2)
+            third = math.exp(-(((z+self.H)/sigmay)**2)/2)
+
+            return frac * first * (second + third)
+        else:
+            return 0
+
+    def get_sigma_values(self, x):
+        if self.atmosphere == 'unstable':
+            sigmay = 0.493 * (x ** 0.88)
+            sigmaz = 0.087 * (x ** 1.10)
+        elif self.atmosphere == 'normal':
+            sigmay = 0.128 * (x ** 0.90)
+            sigmaz = 0.093 * (x ** 0.85)
+        elif self.atmosphere == 'stable':
+            sigmay = 0.067 * (x ** 0.90)
+            sigmaz = 0.057 * (x ** 0.80)
+
+        return sigmay, sigmaz

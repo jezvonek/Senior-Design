@@ -5,10 +5,10 @@ import math
 
 class ConfusionMatrix:
 
-    def __init__(self):
-        pass
+    def __init__(self, multiplier=1):
+        self.multiplier = multiplier
 
-    def set_baseline_model_parameters(self, mu, sigma, Q_min, sigmay=0.5, sigmaz=0.5):
+    def set_baseline_model_parameters(self, mu, sigma, Q_min):
         """Establishes model parametes
 
         Parameters
@@ -19,18 +19,12 @@ class ConfusionMatrix:
             Baseline methane concentration reading standard deviation
         Q_min : float
             Minimum methane concentration to test for
-        sigmay : float, optional
-            Standard deviation of plume in y direction
-        sigmaz : float
-            Standard deviation of plume in z direction
 
         """
 
         self.mu = mu
         self.sigma = sigma
         self.Q_min = Q_min
-        self.sigmay = sigmay
-        self.sigmaz = sigmaz
 
     def test_measurements(self, measurements, emission_source):
         """Creates a confusion matrix comparing a set of measurements to an
@@ -69,17 +63,7 @@ class ConfusionMatrix:
         else:
             Q_to_use = self.Q_min
 
-        # compares data to leak and baseline models to obtain probabilities for each
-        p_leak = self.compare_to_leak(Q_to_use, measurements, emission_source)
-        p_noleak = self.compare_to_baseline(measurements)
-
-        # normalizes probabilities
-        norm = p_leak + p_noleak
-        p_leak = p_leak / norm
-        p_noleak = p_noleak / norm
-
-        # organizes into matrix for return
-        p_arr = np.array([p_leak, p_noleak])
+        p_arr = self.compute_p_arr(Q_to_use, measurements, emission_source)
         return p_arr
 
     def optimize_Q(self, measurements, source):
@@ -101,7 +85,8 @@ class ConfusionMatrix:
         """
 
         def f(Q):
-            return -self.compare_to_leak(Q, measurements, source)
+            p_arr = self.compute_p_arr(Q, measurements, source)
+            return -p_arr[0]
 
         res = minimize_scalar(f)
 
@@ -110,40 +95,38 @@ class ConfusionMatrix:
         else:
             raise Exception('Q was not optimized successfully')
 
-    def compare_to_leak(self, Q, measurements, source):
-        z_score_array = self.sample_leak_present(Q, measurements, source)
-        p = z_scores_to_prob(z_score_array)
+    def compute_p_arr(self, Q, measurements, emission_source):
+        # compares data to leak and baseline models to obtain probabilities for each
+        z_leak = self.sample_leak_present(Q, measurements, emission_source)
+        z_noleak = self.sample_no_leak(measurements)
+        
+        p_arr = z_scores_to_prob(z_leak, z_noleak)
 
-        return p
-
-    def compare_to_baseline(self, measurements):
-        z_score_array = self.sample_no_leak(measurements)
-        p = z_scores_to_prob(z_score_array)
-
-        return p
+        return p_arr
 
     def sample_leak_present(self, Q, measurements, source):
-        leak_model = LeakPresent(Q, self.sigmay, self.sigmaz, source[2]) # what are sigmay and sigmaz determined from?
+        leak_model = LeakPresent(Q, source[2]) # what are sigmay and sigmaz determined from?
         z_score_array = np.array([])
-        for index, row in measurements.iterrows():
+        for _, row in measurements.iterrows():
             pos = np.array([row['x'], row['y'], row['z']])
-            conc = leak_model.predict_local_coors(pos, source, row['wind_speeds'], row['wind_directions']) - self.mu
-            z_score = (row['ch4_conc'] - conc) / self.sigma
+            conc = leak_model.predict_local_coors(pos, source, row['wind_speeds'], row['wind_directions']) 
+            conc += self.mu
+            z_score = (row['ch4_conc'] - conc) / (self.sigma * self.multiplier)
             z_score_array = np.append(z_score_array, z_score)
 
         return z_score_array
 
     def sample_no_leak(self, measurements):
         z_score_array = np.array([])
-        for index, row in measurements.iterrows():
+        for _, row in measurements.iterrows():
             z_score = (row['ch4_conc'] - self.mu) / self.sigma
             z_score_array = np.append(z_score_array, z_score)
 
         return z_score_array
 
 
-def z_scores_to_prob(z_score_array):
-    """Intakes an array of z-scores and outputs the probability of them all occurring
+def z_scores_to_prob(z_leak, z_noleak):
+    """Intakes an array of z-scores and outputs the probabilities of them all occurring
 
     Parameters
     ----------
@@ -152,14 +135,33 @@ def z_scores_to_prob(z_score_array):
 
     Returns
     ----------
-    prob : np.array
-        The total probability
+    p_arr : np.array
+        The probabilities of all the events occuring
 
     """
 
-    prob = 1
-    for z_score in z_score_array:
-        indiv_prob = 1/math.sqrt(2 * math.pi) * math.exp(-(z_score**2) / 2)
-        prob = prob * indiv_prob
+    p_arr = np.array([])
+    for i in range(z_leak.shape[0]):
+        z1 = z_leak[i]
+        z2 = z_noleak[i]
+        z_diff = ((z2**2) / 2) - ((z1**2) / 2)
+        try:
+            p_ratio = math.exp(z_diff) # p1/p2
+        except OverflowError:
+            p_ratio = float('inf')
+        if math.isinf(p_ratio):
+            p1 = 1
+            p2 = 0
+        else:
+            p1 = p_ratio/(1+p_ratio)
+            p2 = 1 - p1
+        if i == 0:
+            p_arr = np.array([p1, p2]).astype(float)
+        else:
+            p_arr[0] = p_arr[0] * p1
+            p_arr[1] = p_arr[1] * p2
+            norm = p_arr[0] + p_arr[1]
+            p_arr[0] = p_arr[0] / norm
+            p_arr[1] = p_arr[1] / norm
 
-    return prob
+    return p_arr
