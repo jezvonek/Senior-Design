@@ -70,7 +70,7 @@ WindDirection = FD.inflight_data['wind_directions'][0];
 
 Dist = ProbDist(size, grid_size, FD.wellpad_components, WindSpeed, WindDirection);
 
-print(Dist.P)
+#print(Dist.P)
 #define a 2D array that is a layer of the probability distribution
 P_layer = np.zeros((grid_size[0], grid_size[1]))
 for i in range(grid_size[0]):
