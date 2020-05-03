@@ -35,16 +35,22 @@ def initwaypoint(prob, xspacing, yspacing, zspacing, power=1):
         for j in range(0,n.shape(prob)[1]):
             for k in range(0,n.shape(prob)[2]):
                 for x in range(-1*power, power + 1):        # loop over the window
+                    if not(comp[i,j,k]):
+                                break
                     compx = i + x
                     if (compx >= 0) and (compx < n.shape(prob)[0]):
                         for y in range(-1*power, power + 1):
+                            if not(comp[i,j,k]):
+                                break
                             compy = j + y
                             if (compy >= 0) and (compy < n.shape(prob)[1]):
                                 for z in range(-1*power, power + 1):
+                                    if not(comp[i,j,k]):
+                                        break
                                     compz = k + z
                                     if (compz >= 0) and (compz < n.shape(prob)[2]):
-                                        if comp[i,j,k]:
-                                            comp[i,j,k] = comp[i,j,k] & (prob[i,j,k] >= prob[compx, compy, compz])
+                                        if not(compx == i and compy == j and compz == k):
+                                            comp[i,j,k] = comp[i,j,k] & (prob[i,j,k] > prob[compx, compy, compz])
 
     # find the coordinates of the maxima based on the indices of the comparison array
     for i in range(0,n.shape(prob)[0]):                             # loop over the coordinate indices
