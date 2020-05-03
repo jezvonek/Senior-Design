@@ -172,8 +172,8 @@ def outline(bounds, res):
     # ------------------------
     # Filling in the wps Array
     # ------------------------
-    
-    wps = n.zeros([2*(m.ceil((bounds[1,2] - bounds[0,2])/res)+1), 3])                   # preallocate wps
+
+    wps = n.zeros([2*m.ceil((bounds[1,2] - bounds[0,2])/res+1), 3])                    # preallocate wps
 
     for i in range(0, int((n.shape(wps)[0]-2)/2)):                                      # loop over the waypoints in pairs of left and right save the last pair
         for j in range(0,2):                                                            # loop over the x and y coordinates
@@ -218,11 +218,11 @@ def fluxPlane(x, y, z, objs, v, theta, temp, res, overcast=False):
     # Finding the Dispersion Coefficients
     # -----------------------------------
     
-    closeObj = getClosestObject(x,y,z,obj)             # find the coordinates of the closest potential leak source
+    closeObj = getClosestObject(x,y,z,objs)             # find the coordinates of the closest potential leak source
     xbar = m.sqrt((closeObj[0] - x)**2 + (closeObj[1] - y)**2 + (closeObj[2] - z)**2)          # the distance between the drone and the closest potential leak source
     stability = getStab(v, temp, overcast)              # find the Pasquill Stability Class
     sigma = dispersion(stability, xbar)                 # find the y and z dispersion coefficients, which are the bounds of the flux plane
-
+    print(closeObj)
     # ------------------------------------
     # Finding the Bounds of the Flux Plane
     # ------------------------------------
@@ -231,7 +231,7 @@ def fluxPlane(x, y, z, objs, v, theta, temp, res, overcast=False):
     xhat1 = x - sigma[0]*m.sin((360-theta)*m.pi/180)                   # the x and y coordinates of the flux plane bounds
     yhat1 = y + sigma[0]*m.cos((360-theta)*m.pi/180)
     xhat2 = x + sigma[0]*m.sin((360-theta)*m.pi/180)
-    yhat2 = y + sigma[0]*m.cos((360-theta)*m.pi/180)
+    yhat2 = y - sigma[0]*m.cos((360-theta)*m.pi/180)
     
     # z coordinates for the flux plane bounds
     if z - sigma[1] < 0.0: 
@@ -240,9 +240,8 @@ def fluxPlane(x, y, z, objs, v, theta, temp, res, overcast=False):
         zhat1 = z - sigma[1]
 
     zhat2 = z + sigma[1]
-    
     # filling in the bounds array
-    bounds = [[xhat1, yhat1, zhat1], [xhat1, yhat1, zhat2], [xhat2, yhat2, zhat1], [xhat2, yhat2, zhat2]]
+    bounds = n.array([[xhat1, yhat1, zhat1], [xhat1, yhat1, zhat2], [xhat2, yhat2, zhat1], [xhat2, yhat2, zhat2]])
 
     # -----------------
     # Filling wps Array
