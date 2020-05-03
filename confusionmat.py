@@ -1,13 +1,14 @@
 import numpy as np 
-from concentrationmodel import LeakPresent
-import scipy
+from .concentrationmodel import LeakPresent
+from scipy.optimize import minimize_scalar
+import math
 
 class ConfusionMatrix:
 
     def __init__(self):
         pass
 
-    def set_baseline_model_parameters(self, mu, sigma, Q_min):
+    def set_baseline_model_parameters(self, mu, sigma, Q_min, sigmay=0.5, sigmaz=0.5):
         """Establishes model parametes
 
         Parameters
@@ -18,17 +19,24 @@ class ConfusionMatrix:
             Baseline methane concentration reading standard deviation
         Q_min : float
             Minimum methane concentration to test for
+        sigmay : float, optional
+            Standard deviation of plume in y direction
+        sigmaz : float
+            Standard deviation of plume in z direction
 
         """
 
         self.mu = mu
         self.sigma = sigma
-        self.Q_min
+        self.Q_min = Q_min
+        self.sigmay = sigmay
+        self.sigmaz = sigmaz
 
     def test_measurements(self, measurements, emission_source):
         """Creates a confusion matrix comparing a set of measurements to an
         emission source. Left side of table assumes conclusion that leak is present.
-        Right side assumes conclusion that leak is not present
+        Right side assumes conclusion that leak is not present. This function will return
+        either the left half of the table or the right half of the table
 
                 | True Pos.  | False Neg. |
                 | False Pos. | True Neg.  |
@@ -44,8 +52,9 @@ class ConfusionMatrix:
 
         Returns
         ----------
-        mat : np.array
-            NumPy array of shape (2,2) containing probabilities in form:
+        p_arr : np.array
+            NumPy array of shape (2) containing either the left half or the right half
+            of the confusion matrix
 
         """
 
@@ -56,17 +65,22 @@ class ConfusionMatrix:
         # a leak is present. If so, we can compare data points against model with optimized
         # Q value. If not, we compare data points to model with minimized Q value
         if Q_optim > self.Q_min:
-                Q_to_use = Q_optim
+            Q_to_use = Q_optim
         else:
-                Q_to_use = self.Q_min
+            Q_to_use = self.Q_min
 
         # compares data to leak and baseline models to obtain probabilities for each
-        p_true_pos, p_false_pos = self.compare_to_leak(Q_to_use, measurements, emission_source)
-        p_true_neg, p_false_neg = self.compare_to_baseline(measurements)
+        p_leak = self.compare_to_leak(Q_to_use, measurements, emission_source)
+        p_noleak = self.compare_to_baseline(measurements)
+
+        # normalizes probabilities
+        norm = p_leak + p_noleak
+        p_leak = p_leak / norm
+        p_noleak = p_noleak / norm
 
         # organizes into matrix for return
-        mat = np.array([[p_true_pos, p_false_neg], [p_false_pos, p_true_neg]])
-        return mat
+        p_arr = np.array([p_leak, p_noleak])
+        return p_arr
 
     def optimize_Q(self, measurements, source):
         """Optimizes Q using the maximum a posteriori estimate
@@ -87,11 +101,9 @@ class ConfusionMatrix:
         """
 
         def f(Q):
-            p, _ = self.compare_to_leak(Q, measurements, source)
-            return -p
+            return -self.compare_to_leak(Q, measurements, source)
 
-        #Q = self.Q_min
-        res = scipy.optimize.minimize_scalar(f)
+        res = minimize_scalar(f)
 
         if res.success:
             return res.x
@@ -102,13 +114,13 @@ class ConfusionMatrix:
         z_score_array = self.sample_leak_present(Q, measurements, source)
         p = z_scores_to_prob(z_score_array)
 
-        return p, 1-p
+        return p
 
     def compare_to_baseline(self, measurements):
         z_score_array = self.sample_no_leak(measurements)
         p = z_scores_to_prob(z_score_array)
 
-        return p, 1-p
+        return p
 
     def sample_leak_present(self, Q, measurements, source):
         leak_model = LeakPresent(Q, self.sigmay, self.sigmaz, source[2]) # what are sigmay and sigmaz determined from?
@@ -121,7 +133,7 @@ class ConfusionMatrix:
 
         return z_score_array
 
-    def sample_no_leak(self):
+    def sample_no_leak(self, measurements):
         z_score_array = np.array([])
         for index, row in measurements.iterrows():
             z_score = (row['ch4_conc'] - self.mu) / self.sigma

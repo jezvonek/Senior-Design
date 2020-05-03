@@ -1,64 +1,66 @@
-#initialize class with size of well pad, list of coordinates for potential leaks (components), wind speed
-#need to import dave allen statistics for each type of equipment
 import numpy as np 
+from math import isnan
 
 class ProbDist:
 	def __init__(self, 
 		         size, #[L, W, H] dimensions of the well pad, in meters
 		         grid_size, #(n_L, n_W, n_H) tuple with number of grid points in each direction
 		         LeakPoints, #list of points where we are assuming there might be a point source leak
-		         PointStats, #list of statistics corresponding to the probability of emission for each point in the list LeakPoints
 		         v_wind, #current wind speed
-		         wind_dir, #current wind direction; we assume this is a unit vector in the xy-plane
-		         Sigma): #[sigma_y, sigma_z] standard deviations corresponding to the dispersion model
+		         wind_dir #current wind direction; we assume this an angle counter clockwise relative to the positive x axis
+		         ): 
 		
 		self.size = size;
 		self.grid_size = grid_size;
 		self.LeakPoints = LeakPoints;
-		self.PointStats = PointStats;
 		self.v_wind = v_wind;
 		self.wind_dir = wind_dir;
-		self.Sigma = Sigma;
 
 		#find increments = [delta_l, delta_w, delta_h]
 		self.increments = [];
-		for i in length(size):
+		for i in range(len(size)):
 			self.increments.append(size[i]/grid_size[i])
 
 		self.P = self.ComputeDistribution()
 	
 	def ComputeDistribution(self):
 		#define empty 3d array
-		P = np.zeros(grid_size);
-
-		#define standard deviations in y and z directions
-		sigma_y = Sigma[0];
-		sigma_z = Sigma[1];
+		P = np.zeros(self.grid_size);
 
 		#for point in self.LeakPoints:
 			#for i, j, k in 3D array, compute the concentration due to that leak
-		for n in length(self.LeakPoints):
-			LP = self.LeakPoints(n);
+		for n in range(len(self.LeakPoints)):
+			LP = self.LeakPoints[n].pos;
 			H = LP[2]; #this should be at half the height of the equipment
-			Stat = self.PointStats(n);
-			
-			for i in grid_size[0]:
-				for j in grid_size[1]:
-					for k in grid_size[2]:
+
+			for i in range(self.grid_size[0]):
+				for j in range(self.grid_size[1]):
+					for k in range(self.grid_size[2]):
 						#find x,y,z in well pad coordinate system
 						x_temp = i*self.increments[0] - LP[0];
 						y_temp = j*self.increments[1] - LP[1];
 						z = k*self.increments[2];
 
 						#now convert the x,y,z to the coordinate system defined by Hodgkinson et al.
-						x = self.wind_dir[0]*x_temp + self.wind_dir[1]*y_temp;
-						y = -self.wind_dir[1]*x_temp + self.wind_dir[0]*y_temp;
+						x = np.cos(self.wind_dir)*x_temp + np.sin(self.wind_dir)*y_temp;
+						y = -np.sin(self.wind_dir)*x_temp + np.cos(self.wind_dir)*y_temp;
 
-						#weight the distribution by the statistics given from Allen et al.
-						P[i,j,k] = P[i,j,k] + Stat/(2*np.pi*sigma_y*sigma_z*self.v_wind)*np.exp(-0.5*(y/sigma_y)^2)*(np.exp(-0.5*((z-H)/sigma_z)^2) + np.exp(-0.5*((z+H)/sigma_z)^2));
+						#find sigma_x and sigma_y based on the distance from the leak source (x)
+						#we are assuming neutral stability conditions
+						if x>10**-5:
+							sigma_y = 0.128*(x**0.9);
+							sigma_z = 0.093*(x**0.85);
 
+							p_new = 1/(2*np.pi*sigma_y*sigma_z*self.v_wind)*np.exp(-0.5*(y/sigma_y)**2)*(np.exp(-0.5*((z-H)/sigma_z)**2) + np.exp(-0.5*((z+H)/sigma_z)**2));
+							"""if isnan(p_new):
+								#print("Nan at: ","(",i*self.increments[0], ",", j*self.increments[1], ",", z, ")") 
+								print("Nan at: ","(",x, ",", y, ",", z, ")") 
+								print("sigma_y = ",sigma_y, "; sigma_z= ", sigma_z)
+							"""
+							print("P_new = ", p_new)
+							P[i,j,k] = P[i,j,k] + p_new;
 
-		#find some of value at all points and then divide each point by that number
+		#find sum of value at all points and then divide each point by that number
 		Scale = np.sum(P);
 		P = P/Scale; #divide the probability distribution by the sum of its elements so that the sum of the probabilities for each point is 1
 
