@@ -60,7 +60,7 @@ FD.inflight_data['z'] = FD.inflight_data['z'] - min_z;
 size = [max_x-min_x, max_y-min_y, max_z-min_z];
 
 #try changing these numbers as necessary
-grid_size = (10,10,10);
+grid_size = (100,100,10);
 
 #define wind speed as initial speed
 #may want to change this to use current wind speed in future

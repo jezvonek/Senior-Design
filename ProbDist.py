@@ -1,4 +1,5 @@
 import numpy as np 
+from math import isnan
 
 class ProbDist:
 	def __init__(self, 
@@ -46,14 +47,21 @@ class ProbDist:
 
 						#find sigma_x and sigma_y based on the distance from the leak source (x)
 						#we are assuming neutral stability conditions
-						sigma_y = 0.128*(x**0.9);
-						sigma_z = 0.093*(x**0.85);
+						if x>10**-5:
+							sigma_y = 0.128*(x**0.9);
+							sigma_z = 0.093*(x**0.85);
 
-						p_new = 1/(2*np.pi*sigma_y*sigma_z*self.v_wind)*np.exp(-0.5*(y/sigma_y)**2)*(np.exp(-0.5*((z-H)/sigma_z)**2) + np.exp(-0.5*((z+H)/sigma_z)**2));
-						P[i,j,k] = P[i,j,k] + p_new;
+							p_new = 1/(2*np.pi*sigma_y*sigma_z*self.v_wind)*np.exp(-0.5*(y/sigma_y)**2)*(np.exp(-0.5*((z-H)/sigma_z)**2) + np.exp(-0.5*((z+H)/sigma_z)**2));
+							"""if isnan(p_new):
+								#print("Nan at: ","(",i*self.increments[0], ",", j*self.increments[1], ",", z, ")") 
+								print("Nan at: ","(",x, ",", y, ",", z, ")") 
+								print("sigma_y = ",sigma_y, "; sigma_z= ", sigma_z)
+							"""
+							print("P_new = ", p_new)
+							P[i,j,k] = P[i,j,k] + p_new;
 
 		#find sum of value at all points and then divide each point by that number
-		Scale = np.sum(P)/100.;
+		Scale = np.sum(P);
 		P = P/Scale; #divide the probability distribution by the sum of its elements so that the sum of the probabilities for each point is 1
 
 		return P
