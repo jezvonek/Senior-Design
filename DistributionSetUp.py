@@ -27,6 +27,7 @@ for item in FD.wellpad_components:
 	elif item.pos[2]>max_z:
 		max_z = item.pos[2]
 
+"""
 for item in FD.inflight_data['x']:
 	if item<min_x:
 		min_x = item;
@@ -44,11 +45,12 @@ for item in FD.inflight_data['z']:
 		min_z = item;
 	elif item>max_z:
 		max_z = item;
+"""
 
 #shift all coordinates
 for i in range(0,len(FD.wellpad_components)):
 	#add 3m to the z component of the component location since we don't have the real height of the components
-	FD.wellpad_components[i].pos = FD.wellpad_components[i].pos - [min_x, min_y, min_z] + [0,0,3];
+	FD.wellpad_components[i].pos = FD.wellpad_components[i].pos - [min_x-40, min_y-40, min_z] + [0,0,3];
 
 '''
 FD.inflight_data['x'] = FD.inflight_data['x'] - min_x;
@@ -57,10 +59,11 @@ FD.inflight_data['z'] = FD.inflight_data['z'] - min_z;
 '''
 
 #define the size of the wellpad, in meters
-size = [max_x-min_x, max_y-min_y, max_z-min_z];
+size = [max_x-(min_x)+60, max_y-(min_y)+60, max_z-(min_z)+6];
+print(size)
 
 #try changing these numbers as necessary
-grid_size = (100,100,10);
+grid_size = (200,200,20);
 
 #define wind speed as initial speed
 #may want to change this to use current wind speed in future
@@ -75,7 +78,18 @@ Dist = ProbDist(size, grid_size, FD.wellpad_components, WindSpeed, WindDirection
 P_layer = np.zeros((grid_size[0], grid_size[1]))
 for i in range(grid_size[0]):
 	for j in range(grid_size[1]):
-		P_layer[i,j] = Dist.P[i,j,5];
+		P_layer[i,j] = Dist.P[i,j,13];
 
-plt.contourf(P_layer)
+X = np.zeros(grid_size[0])
+Y = np.zeros(grid_size[1])
+
+nx = size[0]/grid_size[0];
+ny = size[1]/grid_size[1];
+for i in range(grid_size[0]): X[i] = i*nx;
+for j in range(grid_size[1]): Y[j] = j*ny;
+
+X#v, Yv = np.meshgrid(X,Y)
+plt.contourf(X,Y, P_layer)
+for item in FD.wellpad_components:
+	plt.plot(item.pos[0], item.pos[1],'ko')
 plt.show()

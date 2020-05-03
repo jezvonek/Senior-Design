@@ -47,7 +47,7 @@ class ProbDist:
 
 						#find sigma_x and sigma_y based on the distance from the leak source (x)
 						#we are assuming neutral stability conditions
-						if x>10**-5:
+						if x>(10**(-5)):
 							sigma_y = 0.128*(x**0.9);
 							sigma_z = 0.093*(x**0.85);
 
@@ -57,7 +57,7 @@ class ProbDist:
 								print("Nan at: ","(",x, ",", y, ",", z, ")") 
 								print("sigma_y = ",sigma_y, "; sigma_z= ", sigma_z)
 							"""
-							print("P_new = ", p_new)
+							#print("P_new = ", p_new)
 							P[i,j,k] = P[i,j,k] + p_new;
 
 		#find sum of value at all points and then divide each point by that number
