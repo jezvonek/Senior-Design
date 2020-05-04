@@ -19,7 +19,9 @@ class Object:
 
      # Find the distance of a path around an object between two waypoints
      ## This function only uses the 2D coordinates of the object and path
-     def AvoidanceDistance(self, x1, x2): 
+     def AvoidanceDistance(self, x1, x2):
+          path = np.array([])
+
           # Only two shapes: cylinder and rectangular prism
           if(self.shape == 'tank'):
                r = self.bounds + 4
@@ -27,7 +29,7 @@ class Object:
 
                # Calculate the distance from the path to the center of the cylinder
                dist_to_center = abs(center[0]*(x2[0] - x1[0]) + center[1]*(x1[1] - x2[1]) \
-                    + x1[0]*(x2[1] - x1[1]) + x1[0]*(x2[0] - x1[0]))/math.sqrt(abs((x2[0] - x1[0])**2 + (x2[1] - x1[1]**2)))
+                    + x1[0]*(x2[1] - x1[1]) + x1[0]*(x2[0] - x1[0]))/math.sqrt(abs((x2[0] - x1[0])**2 + (x2[1] - x1[1])**2))
 
                
                # Line does not intersect cylinder
@@ -71,7 +73,7 @@ class Object:
                
                points = np.asarray(points)
 
-               # If no points of intersection is found, the path doesn't intersect the object
+               # If no points of intersection are found, the path doesn't intersect the object
                if points.size > 2:
                     # The distance along the perimeter will be used to calculate the avoidance distance
                     perimeter = 2*(np.linalg.norm(o2 - [o1[0], o2[1]]) + np.linalg.norm(o2 - [o2[0], o1[1]]))
@@ -81,25 +83,34 @@ class Object:
 
                     return (diag_points/diag_rect)*perimeter
 
-
                return 0
 
-def GeneratePath(x):
+def GeneratePath(x, WellpadComponents):
      """
      Insert code to either read stored data on the wellpad components or load
      data from kml files. This depends on how we want to structure our code.
-     equipment = np.array([])
-     for i in wellpad_components:
-          component = Object(i.bounds, i.shape, i.location)
+     """
 
-     Insert code to read waypoints
-     x = waypoints
+     equipment = []
+     for component in WellpadComponents:
+          """
+          if component.get_type() == 'tank':
+               obj = Object(component.size, component.get_type(), component.location)
+          else:
+               obj = Object(np.asarray([component.location - component.size/2, \
+                    component.location + component.size/2], \
+                    component.get_type(), component.location))
+          """
+          obj = Object(1, 'tank', component.pos)
+          equipment.append(obj)
+
+     # Insert code to read waypoints
+     #x = waypoints
      """
      # Test Waypoints
      x = 40*np.random.rand(5,2)
      # Test Objects
      equipment = []
-     object_types = ['tank', 'other']
      for e in range(0,5):
           if(np.random.rand() < .5):
                o = Object(2*np.random.rand(), 'tank', 40*np.random.rand(2))
@@ -107,7 +118,7 @@ def GeneratePath(x):
                loc = 40*np.random.rand(2)
                o = Object(np.asarray([loc - 1, loc + 1]), 'other', loc)
           equipment.append(o)
-
+     """
 
      # Stores the distances between waypoints
      Distance_Matrix = []
@@ -145,37 +156,37 @@ def GeneratePath(x):
      x_.append(x[path[0]][0])
      y_.append(x[path[0]][1])
 
+     
+     #Path Plotting with Objects
+
+     plt.plot(x_,y_,'-o')
+     plt.plot(x_[0],y_[0],'o',ms=10)
+
+     ax = plt.gca()
+
+     for obj in equipment:
+          if obj.shape == 'tank':
+               ax.add_patch(ptch.Circle(obj.location, obj.bounds))
+          else:
+               ax.add_patch(ptch.Rectangle(obj.bounds[0] - 4*np.sign(obj.bounds[0]),\
+                    4*(obj.bounds[1][0] - obj.bounds[0][0]), \
+                    4*(obj.bounds[1][1] - obj.bounds[0][1])))
+
+
+     # Originally used for splines. Unnecessary
+     #tck,u=interpolate.splprep([x_,y_],s=0)
+     #x_i,y_i= interpolate.splev(np.linspace(0,1,100),tck)
+     #plt.plot(x_i, y_i, color='green')
+
+     #print(x_i[0])
+     #print(y_i)
+
+     #with open('TSP.txt', 'w') as tsp:
+     #     for i in range(0,len(x_i)):
+     #          tsp.write("%d, %d\n" %(x_i[i], y_i[i]))
+
+
+
+     plt.show()
+
      return np.array([x_, y_])
-"""
-Path Plotting with Objects
-
-plt.plot(x_,y_,'-o')
-plt.plot(x_[0],y_[0],'o',ms=10)
-
-ax = plt.gca()
-
-for obj in equipment:
-     if obj.shape == 'tank':
-          ax.add_patch(ptch.Circle(obj.location, obj.bounds + 4))
-     else:
-          ax.add_patch(ptch.Rectangle(obj.bounds[0] - 4*np.sign(obj.bounds[0]),\
-               4*(obj.bounds[1][0] - obj.bounds[0][0]), \
-               4*(obj.bounds[1][1] - obj.bounds[0][1])))
-
-
-# Originally used for splines. Unnecessary
-#tck,u=interpolate.splprep([x_,y_],s=0)
-#x_i,y_i= interpolate.splev(np.linspace(0,1,100),tck)
-#plt.plot(x_i, y_i, color='green')
-
-#print(x_i[0])
-#print(y_i)
-
-#with open('TSP.txt', 'w') as tsp:
-#     for i in range(0,len(x_i)):
-#          tsp.write("%d, %d\n" %(x_i[i], y_i[i]))
-
-
-
-plt.show()
-"""
