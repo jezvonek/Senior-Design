@@ -50,6 +50,7 @@ def FindP_WellPad1(Plot_P = True):
 	"""
 
 	#shift all coordinates
+	Shift = [min_x-40, min_y-40,0];
 	for i in range(0,len(FD.wellpad_components)):
 		#add 3m to the z component of the component location since we don't have the real height of the components
 		FD.wellpad_components[i].pos = FD.wellpad_components[i].pos - [min_x-40, min_y-40, min_z] + [0,0,3];
@@ -86,8 +87,8 @@ def FindP_WellPad1(Plot_P = True):
 		X = np.zeros(grid_size[0])
 		Y = np.zeros(grid_size[1])
 
-		for i in range(grid_size[0]): X[i] = i*Spacing[0];
-		for j in range(grid_size[1]): Y[j] = j*Spacing[1];
+		for i in range(grid_size[0]): X[i] = i*Spacing[0] + (min_x-40);
+		for j in range(grid_size[1]): Y[j] = j*Spacing[1] + (min_y-40);
 
 		X#v, Yv = np.meshgrid(X,Y)
 		plt.contourf(X,Y, P_layer)
@@ -95,4 +96,4 @@ def FindP_WellPad1(Plot_P = True):
 			plt.plot(item.pos[0], item.pos[1],'ko')
 		plt.show()
 
-	return Dist.P, Spacing
+	return Dist.P, Spacing, Shift
