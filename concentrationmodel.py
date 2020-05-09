@@ -46,10 +46,10 @@ class LeakPresent:
 
         """
 
-        angle_rad = - wind_direction * 180 / math.pi
+        angle_rad = - wind_direction * math.pi / 180
 
         point = point - source
-        rot_point = point
+        rot_point = point.copy()
         rot_point[0] = point[0] * math.cos(angle_rad) - point[1] * math.sin(angle_rad)
         rot_point[1] = point[1] * math.cos(angle_rad) + point[0] * math.sin(angle_rad)
 

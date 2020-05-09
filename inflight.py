@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from .confusionmat import ConfusionMatrix
+from .fluxplane import fluxPlane
 
 class InFlight:
 
@@ -37,6 +38,9 @@ class InFlight:
         self.update_confusion_mat()
 
     def trigger_flux_plane(self,component):
+        #size = self.measurements.shape[0]
+        #measurements = self.measurements.iloc[indices]
+        #wps = fluxPlane()
         print('Flux plane!')
         print(component.name)
 
