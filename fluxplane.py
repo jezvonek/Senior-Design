@@ -228,9 +228,9 @@ def fluxPlane(x, y, z, objs, v, theta, temp, res, overcast=False):
     # ------------------------------------
 
     # rotate the flux plane to be perpindicular to the wind direction
-    xhat1 = x - sigma[0]*m.sin((360-theta)*m.pi/180)                   # the x and y coordinates of the flux plane bounds
+    xhat1 = x + sigma[0]*m.sin((360-theta)*m.pi/180)                   # the x and y coordinates of the flux plane bounds
     yhat1 = y + sigma[0]*m.cos((360-theta)*m.pi/180)
-    xhat2 = x + sigma[0]*m.sin((360-theta)*m.pi/180)
+    xhat2 = x - sigma[0]*m.sin((360-theta)*m.pi/180)
     yhat2 = y - sigma[0]*m.cos((360-theta)*m.pi/180)
     
     # z coordinates for the flux plane bounds

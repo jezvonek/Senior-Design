@@ -140,6 +140,24 @@ def z_scores_to_prob(z_leak, z_noleak):
 
     """
 
+    squares1 = (z_leak ** 2) / 2
+    squares2 = (z_noleak ** 2) / 2
+    try:
+        p_ratio = math.exp(np.sum(squares2) - np.sum(squares1)) # p1/p2
+    except OverflowError:
+        p_ratio = float('inf')
+    if math.isinf(p_ratio):
+        p1 = 1
+        p2 = 0
+    else:
+        p1 = p_ratio/(1+p_ratio)
+        p2 = 1 - p1
+
+    p_arr = np.array([p1,p2])
+
+    return p_arr
+
+    '''
     p_arr = np.array([])
     for i in range(z_leak.shape[0]):
         z1 = z_leak[i]
@@ -161,7 +179,11 @@ def z_scores_to_prob(z_leak, z_noleak):
             p_arr[0] = p_arr[0] * p1
             p_arr[1] = p_arr[1] * p2
             norm = p_arr[0] + p_arr[1]
+            print(norm)
+            if math.isnan(norm):
+                raise Exception('!!!!!!!!!!!!!!!!!!!!!')
             p_arr[0] = p_arr[0] / norm
             p_arr[1] = p_arr[1] / norm
 
     return p_arr
+    '''

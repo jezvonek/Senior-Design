@@ -21,10 +21,10 @@ class InFlight:
             self.baseline = pd.concat([self.baseline, measurement])
 
     # call when all baseline measurements have been taken
-    def complete_baseline_measurements(self):
+    def complete_baseline_measurements(self, multiplier=1):
         self.baseline_mean = np.mean(self.baseline['ch4_conc'])
         self.baseline_std = np.std(self.baseline['ch4_conc'])
-        self.create_confusion_mat()
+        self.create_confusion_mat(multiplier=multiplier)
 
     # loads a measurement at a single time point
     # calculates confusion matrix wrt to all wellpad components
@@ -41,8 +41,8 @@ class InFlight:
         print(component.name)
 
     # creates confusion matrices
-    def create_confusion_mat(self):
-        self.confusion_mat = ConfusionMatrix()
+    def create_confusion_mat(self, multiplier=1):
+        self.confusion_mat = ConfusionMatrix(multiplier=multiplier)
         self.confusion_mat.set_baseline_model_parameters(self.baseline_mean, self.baseline_std, self.Q_min)
 
     # computes confusion matrix values using sliding window
