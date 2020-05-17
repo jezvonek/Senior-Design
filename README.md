@@ -3,7 +3,7 @@
 This Python software library generates a flight path for the automated detection of methane leaks on a wellpad. For a more detailed description of the algorithm, please refer to the [project description](projectdescription.pdf).
 
 ## Before Flight
-* [Before Flight Controller](main.py): sample path generation
+* [Before Flight Example](main.py): sample path generation
 * [Distribution Set Up](DistributionSetUp.py): sample probability distribution setup and graph
 * [Probability Distribution Generation](ProbDist.py): generates probability distribution specifying regions where methane leaks are likely
 * [Initial Waypoint Assignment](initialwaypoint.py): utilizes this probability distribution to create drone waypoints
