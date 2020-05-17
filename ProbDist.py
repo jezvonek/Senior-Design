@@ -14,7 +14,7 @@ class ProbDist:
 		self.grid_size = grid_size;
 		self.LeakPoints = LeakPoints;
 		self.v_wind = v_wind;
-		self.wind_dir = wind_dir;
+		self.wind_dir = wind_dir*2*np.pi/(360.);
 
 		#find increments = [delta_l, delta_w, delta_h]
 		self.increments = [];
@@ -52,12 +52,7 @@ class ProbDist:
 							sigma_z = 0.093*(x**0.85);
 
 							p_new = 1/(2*np.pi*sigma_y*sigma_z*self.v_wind)*np.exp(-0.5*(y/sigma_y)**2)*(np.exp(-0.5*((z-H)/sigma_z)**2) + np.exp(-0.5*((z+H)/sigma_z)**2));
-							"""if isnan(p_new):
-								#print("Nan at: ","(",i*self.increments[0], ",", j*self.increments[1], ",", z, ")") 
-								print("Nan at: ","(",x, ",", y, ",", z, ")") 
-								print("sigma_y = ",sigma_y, "; sigma_z= ", sigma_z)
-							"""
-							#print("P_new = ", p_new)
+							
 							P[i,j,k] = P[i,j,k] + p_new;
 
 		#find sum of value at all points and then divide each point by that number
